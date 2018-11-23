@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/index.css" />
+</head>
+<body>
+  <svg>
+    <defs>
+      <filter id="drop-shadow" x="-50%" y="-50%" width="200%" height="200%">
+        <feOffset result="offOut" in="SourceAlpha" dx="3" dy="3" />
+        <feComponentTransfer result="transferOut" in="offOut">
+          <feFuncA type="linear" slope="0.5"/>
+        </feComponentTransfer>
+        <feGaussianBlur result="blurOut" in="transferOut" stdDeviation="2" />
+        <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
+      </filter>
+    </defs>
+    <defs>
+      <filter id="sun-glow" x="-100%" y="-100%" width="300%" height="300%">
+        <feMorphology id="sun-dilate" result="dilateOut" in="SourceGraphic" operator="dilate" radius="2"></feMorphology>
+        <feGaussianBlur id="sun-blur" result="blurOut" in="dilateOut" stdDeviation="4" />
+        <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
+      </filter>
+    </defs>
+    <rect id="night-rect" x="0" y="0" width="100%" height="100%" />
+    <path id="civil-arc" />
+    <path id="day-arc" />
+    <circle id="sun" filter="url(#sun-glow)" />
+    <path id="face" filter="url(#drop-shadow)" />
+  </svg>
+  <div id="data-overlay">
+    <div id="rise-info" class="info">
+      <label>Rise</label><br/>
+      <span id="rise-time"></span>
+    </div>
+    <div id="noon-info" class="info">
+      <label>Noon</label><br/>
+      <span id="noon-time"></span>
+    </div>
+    <div id="set-info" class="info">
+      <label>Set</label><br/>
+      <span id="set-time"></span>
+    </div>
+    <div id="time-info" class="info">
+      <div>
+        <label id="day-type"></label><br/>
+        <span id="day-time"></span><br/>
+        <span id="day-percent"></span>
+      </div>
+    </div>
+    <div id="dawn-info" class="info">
+      <label>Dawn</label><br/>
+      <span id="dawn-time"></span>
+    </div>
+    <div id="midnight-info" class="info">
+      <label>Midnight</label><br/>
+      <span id="midnight-time"></span>
+    </div>
+    <div id="dusk-info" class="info">
+      <label>Dusk</label><br/>
+      <span id="dusk-time"></span>
+    </div>
+  </div>
+</body>
+
+<script type="text/javascript" src="js/moment.min.js"></script>
+<script type="text/javascript" src="js/moment-timezone-with-data-2012-2022.min.js"></script>
+<script type="text/javascript" src="js/sol.js"></script>
+<script type="text/javascript" src="js/index.js"></script>
+</html>
