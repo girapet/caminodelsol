@@ -1,7 +1,7 @@
 import { sol } from './sol.js';
 
-var timeFormat = ['h:mm A', '-:-- --'];
-//var timeFormat = ['HH:mm', '--:--'];
+var timeFormatter = new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric' });
+var noTime = timeFormatter.format(new Date(2000, 0, 1, 1, 1)).replace(/[^:\s]/g, '-');
 
 var obs, now, noons, times, dial;
 
@@ -184,7 +184,7 @@ function setSun(dial, times, date) {
 }
 
 function formatTime(time) {
-  return time ? moment(time).format(timeFormat[0]) : timeFormat[1];
+  return time ? timeFormatter.format(new Date(time)) : noTime;
 }
 
 function formatDuration(duration) {
