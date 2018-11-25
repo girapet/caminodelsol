@@ -8,7 +8,7 @@ var obs, now, noons, times, dial;
 navigator.geolocation.getCurrentPosition(function (pos) {
   obs = { lat: pos.coords.latitude, lon: pos.coords.longitude };
   now = new Date();
-  noons = findNoons(now, obs);
+  noons = intialNoons();
   times = sol.findTimes(noons[0], obs);
 
   dial = setDial();
@@ -19,11 +19,11 @@ navigator.geolocation.getCurrentPosition(function (pos) {
 });
 
 setInterval(function () {
-  navigator.geolocation.getCurrentPosition(function (pos) {
-    obs = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-    var n = new Date();
+  var n = new Date();
 
-    if (n.getMinutes() !== now.getMinutes()) {
+  if (n.getMinutes() !== now.getMinutes()) {
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      obs = { lat: pos.coords.latitude, lon: pos.coords.longitude };
       var t = n.valueOf();
 
       if (t - noons[0] > noons[1] - t) {
@@ -38,36 +38,36 @@ setInterval(function () {
 
       setSun(dial, times, n);
       showDay(times, n);
-    }
+    });
+  }
 
-    now = n;
-  });
+  now = n;
 }, 1000);
 
-function findNoons(date, observer) {
-  var current = date.valueOf();
-  var noon = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12).valueOf();
-  noon = sol.findNoon(noon, observer);
+function intialNoons() {
+  var current = now.valueOf();
+  var noon = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12).valueOf();
+  noon = sol.findNoon(noon, obs);
   var difference = current - noon;
 
   if (difference < 0) {
-    var previousNoon = sol.findNoon(noon - 86400000, observer);
+    var previousNoon = sol.findNoon(noon - 86400000, obs);
 
     if (previousNoon - current > difference) {
       return [previousNoon, noon];
     }
     else {
-      return [noon, sol.findNoon(noon + 86400000, observer)];
+      return [noon, sol.findNoon(noon + 86400000, obs)];
     }
   }
   else {
-    var nextNoon = sol.findNoon(noon + 86400000, observer);
+    var nextNoon = sol.findNoon(noon + 86400000, obs);
 
     if (nextNoon - current > difference) {
       return [noon, nextNoon];
     }
     else {
-      return [nextNoon, sol.findNoon(nextNoon + 86400000, observer)];
+      return [nextNoon, sol.findNoon(nextNoon + 86400000, obs)];
     }
   }
 }
@@ -138,7 +138,7 @@ function setSun(dial, times, date) {
   var sunBlur = document.querySelector('#sun-blur');
 
   var t = date.valueOf();
-  sun.setAttribute('r', dial.r * 0.05);
+  sun.setAttribute('r', dial.r * 0.07);
 
   var sr = dial.r * 5 / 6;
   var ratio = times.ratio(t);
@@ -201,7 +201,7 @@ function formatDuration(duration) {
   return `${h}:${m}`;
 }
 
-function setText(id, value) {
+function setHtml(id, value) {
   document.querySelector('#' + id).innerHTML = value;
 }
 
@@ -211,12 +211,12 @@ function showTimes(times) {
   var set = !times.noSet ? times.endSet : null;
   var dusk = !times.noDusk ? times.endDusk : null;
 
-  setText('rise-time', formatTime(rise));
-  setText('noon-time', formatTime(times.noon));
-  setText('set-time', formatTime(set));
-  setText('dawn-time', formatTime(dawn));
-  setText('midnight-time', formatTime(times.startMidnight));
-  setText('dusk-time', formatTime(dusk));
+  setHtml('rise-time', formatTime(rise));
+  setHtml('noon-time', formatTime(times.noon));
+  setHtml('set-time', formatTime(set));
+  setHtml('dawn-time', formatTime(dawn));
+  setHtml('midnight-time', formatTime(times.startMidnight));
+  setHtml('dusk-time', formatTime(dusk));
 }
 
 function showDay(times, date) {
@@ -224,17 +224,17 @@ function showDay(times, date) {
   var d, p;
 
   if (times.startDawn <= t && t <= times.endDusk) {
-    setText('day-type', 'Day<br/>Remaining');
+    setHtml('day-type', 'Day<br/>Remaining');
     d = times.endDusk - t;
     p = Math.round(d * 100 / (times.endDusk - times.startDawn));
   }
   else {
-    setText('day-type', 'Night<br/>Remaining');
+    setHtml('day-type', 'Night<br/>Remaining');
     var d0 = times.startDawn - times.startMidnight;
     d = t < times.startDawn ? times.startDawn - t : d0 + times.endMidnight - t;
     p = Math.round(d * 100 / (d0 + times.endMidnight - times.endDusk));
   }
 
-  setText('day-time', formatDuration(d));
-  setText('day-percent', p + '%');
+  setHtml('day-time', formatDuration(d));
+  setHtml('day-percent', p + '%');
 }
