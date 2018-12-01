@@ -5,8 +5,8 @@ var noTime = timeFormatter.format(new Date(2000, 0, 1, 1, 1)).replace(/[^:\s]/g,
 
 var obs, now, noons, times, dial;
 
-navigator.geolocation.getCurrentPosition(function (pos) {
-  obs = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+getObserver().then(function (result) {
+  obs = result;
   now = new Date();
   noons = intialNoons();
   times = sol.findTimes(noons[0], obs);
@@ -22,8 +22,8 @@ setInterval(function () {
   var n = new Date();
 
   if (n.getMinutes() !== now.getMinutes()) {
-    navigator.geolocation.getCurrentPosition(function (pos) {
-      obs = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+    getObserver().then(function (result) {
+      obs = result;
       var t = n.valueOf();
 
       if (t - noons[0] > noons[1] - t) {
@@ -43,6 +43,14 @@ setInterval(function () {
 
   now = n;
 }, 1000);
+
+function getObserver(callback) {
+  return new Promise(function (resolve) {
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+    });
+  });
+}
 
 function intialNoons() {
   var current = now.valueOf();
@@ -89,7 +97,7 @@ function setDial() {
 
   var cx = w * 0.5;
   var cy = h * 0.5;
-  var or = w * 0.4;
+  var or = Math.min(w, h) * 0.4;
   var ir = or * 2 / 3;
 
   var face = document.querySelector('#face');
@@ -238,3 +246,11 @@ function showDay(times, date) {
   setHtml('day-time', formatDuration(d));
   setHtml('day-percent', p + '%');
 }
+
+window.addEventListener('resize', function () {
+  dial = setDial();
+  setArcs(dial, times);
+  setSun(dial, times, now);
+  showTimes(times);
+  showDay(times, now);
+});
