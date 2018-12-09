@@ -1,6 +1,9 @@
-import { sol } from './sol.js';
+import sol from './sol.js';
 
-let now, noons, times, dial;
+let now;
+let noons;
+let times;
+let dial;
 
 const format = (() => {
   const dtf = new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric' });
@@ -16,25 +19,24 @@ const format = (() => {
       let h = Math.floor(s / 3600);
       let m = Math.round((s - h * 3600) / 60);
 
-      if (m == 60) {
+      if (m === 60) {
         m = 0;
         h += 1;
       }
 
-      return `${h}:${('0' + m).slice(-2)}`;
+      const mm = `0${m}`.slice(-2);
+      return `${h}:${mm}`;
     }
   };
 })();
 
-const getObserver = () => {
-  return new Promise(function (resolve) {
-    navigator.geolocation.getCurrentPosition(function (pos) {
-      resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-    });
+const getObserver = () => new Promise((resolve) => {
+  navigator.geolocation.getCurrentPosition((pos) => {
+    resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude });
   });
-};
+});
 
-const intialNoons = observer => {
+const intialNoons = (observer) => {
   const current = now.valueOf();
   let noon = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12).valueOf();
   noon = sol.findNoon(noon, observer);
@@ -46,29 +48,21 @@ const intialNoons = observer => {
     if (previousNoon - current > difference) {
       return [previousNoon, noon];
     }
-    else {
-      return [noon, sol.findNoon(noon + 86400000, observer)];
-    }
+
+    return [noon, sol.findNoon(noon + 86400000, observer)];
   }
-  else {
-    const nextNoon = sol.findNoon(noon + 86400000, observer);
 
-    if (nextNoon - current > difference) {
-      return [noon, nextNoon];
-    }
-    else {
-      return [nextNoon, sol.findNoon(nextNoon + 86400000, observer)];
-    }
+  const nextNoon = sol.findNoon(noon + 86400000, observer);
+
+  if (nextNoon - current > difference) {
+    return [noon, nextNoon];
   }
+
+  return [nextNoon, sol.findNoon(nextNoon + 86400000, observer)];
 };
 
-const ratioToX = (radius, ratio) => {
-  return dial.cx - Math.sin(2 * Math.PI * ratio) * radius;
-};
-
-const ratioToY = (radius, ratio) => {
-  return dial.cy + Math.cos(2 * Math.PI * ratio) * radius;
-};
+const ratioToX = (radius, ratio) => dial.cx - Math.sin(2 * Math.PI * ratio) * radius;
+const ratioToY = (radius, ratio) => dial.cy + Math.cos(2 * Math.PI * ratio) * radius;
 
 const setDial = () => {
   const svg = document.querySelector('svg');
@@ -86,11 +80,7 @@ const setDial = () => {
   const facePath = `M 0 0 L ${w} 0 L ${w} ${h} L 0 ${h} z M ${cx} ${cy} m 0 ${-or} a ${-or} ${-or} 0 1 0 0.001 0 z m 0 ${or - ir} z a ${ir} ${ir} 0 1 1 -0.001 0 z`;
   face.setAttribute('d', facePath);
 
-  return {
-    cx: cx,
-    cy: cy,
-    r: or
-  };
+  return { cx, cy, r: or };
 };
 
 const setArcPath = (arc, fromRatio, toRatio) => {
@@ -174,7 +164,7 @@ const setSun = () => {
 };
 
 const setHtml = (id, value) => {
-  document.querySelector('#' + id).innerHTML = value;
+  document.querySelector(`#${id}`).innerHTML = value;
 };
 
 const showTimes = () => {
@@ -193,7 +183,8 @@ const showTimes = () => {
 
 const showDay = () => {
   const t = now.valueOf();
-  let d, p;
+  let d;
+  let p;
 
   if (times.startDawn <= t && t <= times.endDusk) {
     setHtml('day-type', 'Day<br/>Remaining');
@@ -208,10 +199,10 @@ const showDay = () => {
   }
 
   setHtml('day-time', format.duration(d));
-  setHtml('day-percent', p + '%');
+  setHtml('day-percent', `${p}%`);
 };
 
-getObserver().then(observer => {
+getObserver().then((observer) => {
   now = new Date();
   noons = intialNoons(observer);
   times = sol.findTimes(noons[0], observer);
@@ -247,7 +238,7 @@ setInterval(async () => {
   }
 }, 1000);
 
-window.addEventListener('resize', function () {
+window.addEventListener('resize', () => {
   dial = setDial();
   setArcs();
   setSun();

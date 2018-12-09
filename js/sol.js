@@ -17,14 +17,14 @@ const acosd = x => Math.acos(x) * degreesPerRadian;
 const asind = x => Math.asin(x) * degreesPerRadian;
 const atan2d = (x, y) => Math.atan2(y, x) * degreesPerRadian;
 
-const rev = x => {
-  x = x % 360;
-  return x >= 0 ? x : x + 360;
+const rev = (x) => {
+  const xr = x % 360;
+  return xr >= 0 ? xr : xr + 360;
 };
 
-const rev180 = x => {
-  x = rev(x);
-  return x <= 180 ? x : x - 360;
+const rev180 = (x) => {
+  const xr = rev(x);
+  return xr <= 180 ? xr : xr - 360;
 };
 
 // point conversion
@@ -40,14 +40,14 @@ const epoch = Date.UTC(1999, 11, 31);
 const millsecondsPerDay = 86400000;
 
 const unixToEpochTime = unixTime => (unixTime - epoch) / millsecondsPerDay;
-const epochToUnixTime = time => time * millsecondsPerDay + epoch;
+const epochToUnixTime = epochTime => epochTime * millsecondsPerDay + epoch;
 
 // astronomical functions
 
 const obliquityOfEcliptic = time => 23.4393 - (3.563e-7 * time);
 const sunArgOfPerihelion = time => rev(282.9404 + 4.70935e-5 * time);
 const sunEccentricity = time => 0.016709 - 1.151e-9 * time;
-const sunMeanAnomaly = time =>  rev(356.0470 + 0.9856002585 * time);
+const sunMeanAnomaly = time => rev(356.0470 + 0.9856002585 * time);
 const siderealTime = (time, lon) => rev(280.4606 + 360.98564736629 * (time - 1.5) + lon);
 
 const eclipticToEquatorial = (time, r) => {
@@ -61,7 +61,7 @@ const eclipticToEquatorial = (time, r) => {
   };
 };
 
-const sunEclipticPosition = time => {
+const sunEclipticPosition = (time) => {
   const w = sunArgOfPerihelion(time);
   const e = sunEccentricity(time);
   const M = sunMeanAnomaly(time);
@@ -84,19 +84,21 @@ const sunEquatorialPosition = time => eclipticToEquatorial(time, sunEclipticPosi
 
 const findTransitTime = (time, observer, atNoon) => {
   const offset = atNoon || atNoon === undefined ? 0 : 180;
+  let t = time;
   let delta = 0;
 
   do {
-    time = time + delta / 360;
-    const sun = rectToPolar(sunEquatorialPosition(time));
-    delta = rev180(sun.lon - siderealTime(time, observer.lon + offset));
+    t += delta / 360;
+    const sun = rectToPolar(sunEquatorialPosition(t));
+    delta = rev180(sun.lon - siderealTime(t, observer.lon + offset));
   } while (Math.abs(delta) > 0.0001);
 
-  return time;
+  return t;
 };
 
 const findAltitudeTime = (time, noon, observer, rising, altitude) => {
-  let sun = rectToPolar(sunEquatorialPosition(time));
+  let t = time;
+  let sun = rectToPolar(sunEquatorialPosition(t));
   const cosh0 = (sind(altitude) - sind(observer.lat) * sind(sun.lat)) / (cosd(observer.lat) * cosd(sun.lat));
 
   if (cosh0 > 1) {
@@ -110,68 +112,71 @@ const findAltitudeTime = (time, noon, observer, rising, altitude) => {
     return midnight;
   }
 
-  time = noon + direction * acosd(cosh0) / 360;
+  t = noon + direction * acosd(cosh0) / 360;
   let delta = 0;
   let i = -1;
 
   do {
-    time += direction * delta / 360;
-    sun = rectToPolar(sunEquatorialPosition(time));
-    const h = rev(siderealTime(time, observer.lon) - sun.lon);
+    t += direction * delta / 360;
+    sun = rectToPolar(sunEquatorialPosition(t));
+    const h = rev(siderealTime(t, observer.lon) - sun.lon);
     const newAltitude = asind(sind(observer.lat) * sind(sun.lat) + cosd(observer.lat) * cosd(sun.lat) * cosd(h));
     delta = newAltitude - altitude;
     i += 1;
   } while (Math.abs(delta) > 0.0001 && i < 2000);
 
   if (rising) {
-    return time < midnight ? null : time <= noon ? time : null;
+    return midnight <= t && t <= noon ? t : null;
   }
 
-  return time < noon ? null : time <= midnight ? time : null;
+  return noon <= t && t <= midnight ? t : null;
 };
 
 // public API
 
-const findNoon = (unixTime, observer) => {
-  const noon = findTransitTime(unixToEpochTime(unixTime), observer);
-  return epochToUnixTime(noon);
-};
+const sol = {
+  findNoon(unixTime, observer) {
+    const noon = findTransitTime(unixToEpochTime(unixTime), observer);
+    return epochToUnixTime(noon);
+  },
 
-const findTimes = (unixTime, observer) => {
-  const transit = findTransitTime(unixToEpochTime(unixTime), observer);
+  findTimes(unixTime, observer) {
+    const transit = findTransitTime(unixToEpochTime(unixTime), observer);
 
-  const startMidnight = epochToUnixTime(findTransitTime(transit - 0.5, observer, false));
-  const startDawn = epochToUnixTime(findAltitudeTime(transit - 0.25, transit, observer, true, -6));
-  const startRise = epochToUnixTime(findAltitudeTime(transit - 0.25, transit, observer, true, -0.833));
-  const endRise = epochToUnixTime(findAltitudeTime(transit - 0.25, transit, observer, true, -0.294));
-  const noon = epochToUnixTime(transit);
-  const startSet = epochToUnixTime(findAltitudeTime(transit + 0.25, transit, observer, false, -0.294));
-  const endSet = epochToUnixTime(findAltitudeTime(transit + 0.25, transit, observer, false, -0.833));
-  const endDusk = epochToUnixTime(findAltitudeTime(transit + 0.25, transit, observer, false, -6));
-  const endMidnight = epochToUnixTime(findTransitTime(transit + 0.5, observer, false));
+    const startMidnight = epochToUnixTime(findTransitTime(transit - 0.5, observer, false));
+    const startDawn = epochToUnixTime(findAltitudeTime(transit - 0.25, transit, observer, true, -6));
+    const startRise = epochToUnixTime(findAltitudeTime(transit - 0.25, transit, observer, true, -0.833));
+    const endRise = epochToUnixTime(findAltitudeTime(transit - 0.25, transit, observer, true, -0.294));
+    const noon = epochToUnixTime(transit);
+    const startSet = epochToUnixTime(findAltitudeTime(transit + 0.25, transit, observer, false, -0.294));
+    const endSet = epochToUnixTime(findAltitudeTime(transit + 0.25, transit, observer, false, -0.833));
+    const endDusk = epochToUnixTime(findAltitudeTime(transit + 0.25, transit, observer, false, -6));
+    const endMidnight = epochToUnixTime(findTransitTime(transit + 0.5, observer, false));
 
-  return {
-    startMidnight,
-    startDawn,
-    startRise,
-    endRise,
-    noon,
-    startSet,
-    endSet,
-    endDusk,
-    endMidnight,
-    dayLength: endMidnight - startMidnight,
-    noDawn: startDawn === startMidnight || startDawn === noon,
-    noRise: startRise === startMidnight || startRise === noon,
-    noSet: endSet === endMidnight || endSet === noon,
-    noDusk: endDusk === endMidnight || endDusk === noon,
-    ratio(v) {
-      if (typeof v === 'string') {
-        v = this[v];
+    return {
+      startMidnight,
+      startDawn,
+      startRise,
+      endRise,
+      noon,
+      startSet,
+      endSet,
+      endDusk,
+      endMidnight,
+      dayLength: endMidnight - startMidnight,
+      noDawn: startDawn === startMidnight || startDawn === noon,
+      noRise: startRise === startMidnight || startRise === noon,
+      noSet: endSet === endMidnight || endSet === noon,
+      noDusk: endDusk === endMidnight || endDusk === noon,
+      ratio(valProp) {
+        let v = valProp;
+        if (typeof v === 'string') {
+          v = this[v];
+        }
+        return Math.round(v - this.startMidnight) / Math.round(this.dayLength);
       }
-      return Math.round(v - this.startMidnight) / Math.round(this.dayLength);
-    }
-  };
+    };
+  }
 };
 
-export const sol = { findNoon, findTimes };
+export default sol;
