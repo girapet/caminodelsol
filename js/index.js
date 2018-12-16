@@ -4,7 +4,32 @@ let now;
 let noons;
 let times;
 let dial;
-let mode = '';
+
+const mode = {
+  current: '',
+  beginTwilight: 'Begin Twilight',
+  day: 'Day',
+  dayRemaining: 'Day<br/>Remaining',
+  dayTwilightRemaining: 'Day + Twilight<br/>Remaining',
+  dayTwilight: 'Day + Twilight',
+  endTwilight: 'End Twilight',
+  midnight: 'Midnight',
+  night: 'Night',
+  nightRemaining: 'Night<br/>Remaining',
+  nightTwilight: 'Night + Twilight',
+  nightTwilightRemaning: 'Night + Twilight<br/>Remaining',
+  noon: 'Noon',
+  sun: 'Sun',
+  sunrise: 'Sunrise',
+  sunset: 'Sunset'
+};
+
+const sunMode = {
+  localSolarTime: 'Local<br/>Solar Time',
+  tempusRomanum: 'Tempus Romanum',
+  aubreyMaturin: 'Aubrey–Maturin'
+};
+sunMode.current = sunMode.localSolarTime;
 
 const format = (() => {
   const dtf = new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric' });
@@ -176,11 +201,11 @@ const showLabelValues = (label, value1, value2 = '') => {
 
 const showRemaining = () => {
   const t = now.valueOf();
-  const isPessimistic = mode === 'Day<br/>Remaining';
+  const isPessimistic = mode.current === mode.dayRemaining;
   const startTime = isPessimistic ? times.startRise : times.startDawn;
   const endTime = isPessimistic ? times.endSet : times.endDusk;
 
-  let label = mode;
+  let label = mode.current;
   let d;
   let p;
 
@@ -189,7 +214,7 @@ const showRemaining = () => {
     p = Math.round(d * 100 / (endTime - startTime));
   }
   else {
-    label = isPessimistic ? 'Night + Twilight<br/>Remaining' : 'Night<br/>Remaining';
+    label = isPessimistic ? mode.nightTwilightRemaning : mode.nightRemaining;
     const d0 = startTime - times.startMidnight;
     d = t < startTime ? startTime - t : d0 + endTime - t;
     p = Math.round(d * 100 / (d0 + times.endMidnight - endTime));
@@ -202,25 +227,72 @@ const showLocalSolarTime = () => {
   const date = new Date(now.getYear(), now.getMonth(), now.getDate()).valueOf();
   let t = now.valueOf();
   t = date + 86400000 * (t - times.startMidnight) / times.dayLength;
-  showLabelValues(mode, format.time(t));
+  showLabelValues(sunMode.current, format.time(t));
+};
+
+const showTempusRomanum = () => {
+  const hours = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+  const hourNames = ['Prima', 'Secunda', 'Tertia', 'Quarta', 'Quinta', 'Sexta', 'Septima', 'Octava', 'Nona', 'Decima', 'Undecima', 'Duodecima'];
+  const t = now.valueOf();
+  let period = 'Noctis';
+  let i;
+
+  if (t < times.startRise) {
+    i = Math.floor(6 + (t - times.startMidnight) * 6 / (times.startRise - times.startMidnight));
+  }
+  else if (t < times.endSet) {
+    period = 'Diei';
+    i = Math.floor((t - times.startRise) * 12 / (times.endSet - times.startRise));
+  }
+  else {
+    i = Math.floor((t - times.endSet) * 6 / (times.endMidnight - times.endSet));
+  }
+
+  const fullHour = `Hora ${hourNames[i]}<br/>${period}`;
+  showLabelValues(sunMode.current, hours[i], fullHour);
+};
+
+const showAubreyMaturin = () => {
+  const bells = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight'];
+  const watches = ['Middle', 'Morning', 'Forenoon', 'Afternoon', 'Dog', 'First'];
+  const t = now.valueOf();
+  const i = Math.floor((t - times.startMidnight) * 48 / (times.endMidnight - times.startMidnight));
+  const b = i % 8;
+  const w = Math.floor(i / 8);
+  let dog = '';
+
+  if (w === 4) {
+    dog = b < 4 ? 'First' : 'Last';
+  }
+
+  showLabelValues(sunMode.current, `${bells[b]} Bell${b > 0 ? 's' : ''}<br/>${dog}${watches[w]} Watch`);
+};
+
+const showSunTime = () => {
+  switch (sunMode.current) {
+    case sunMode.localSolarTime: showLocalSolarTime(); break;
+    case sunMode.tempusRomanum: showTempusRomanum(); break;
+    case sunMode.aubreyMaturin: showAubreyMaturin(); break;
+    default: break;
+  }
 };
 
 const showData = () => {
-  switch (mode) {
-    case 'Midnight': showLabelValues(mode, format.time(times.startMidnight)); break;
-    case 'Begin Twilight': showLabelValues(mode, format.time(times.startDawn)); break;
-    case 'Sunrise': showLabelValues(mode, format.time(times.startRise)); break;
-    case 'Noon': showLabelValues(mode, format.time(times.noon)); break;
-    case 'Sunset': showLabelValues(mode, format.time(times.endSet)); break;
-    case 'End Twilight': showLabelValues(mode, format.time(times.endDusk)); break;
-    case 'Day + Twilight': showLabelValues(mode, format.duration(times.endDusk - times.startDawn)); break;
-    case 'Day': showLabelValues(mode, format.duration(times.endSet - times.startRise)); break;
-    case 'Night': showLabelValues(mode, format.duration((times.startDawn - times.startMidnight) + (times.endMidnight - times.endDusk))); break;
-    case 'Night + Twilight': showLabelValues(mode, format.duration((times.startRise - times.startMidnight) + (times.endMidnight - times.endSet))); break;
-    case 'Local<br/>Solar Time': showLocalSolarTime(); break;
+  switch (mode.current) {
+    case mode.midnight: showLabelValues(mode.current, format.time(times.startMidnight)); break;
+    case mode.beginTwilight: showLabelValues(mode.current, format.time(times.startDawn)); break;
+    case mode.sunrise: showLabelValues(mode.current, format.time(times.startRise)); break;
+    case mode.noon: showLabelValues(mode.current, format.time(times.noon)); break;
+    case mode.sunset: showLabelValues(mode.current, format.time(times.endSet)); break;
+    case mode.endTwilight: showLabelValues(mode.current, format.time(times.endDusk)); break;
+    case mode.dayTwilight: showLabelValues(mode.current, format.duration(times.endDusk - times.startDawn)); break;
+    case mode.day: showLabelValues(mode.current, format.duration(times.endSet - times.startRise)); break;
+    case mode.night: showLabelValues(mode.current, format.duration((times.startDawn - times.startMidnight) + (times.endMidnight - times.endDusk))); break;
+    case mode.nightTwilight: showLabelValues(mode.current, format.duration((times.startRise - times.startMidnight) + (times.endMidnight - times.endSet))); break;
+    case mode.sun: showSunTime(); break;
 
-    case 'Day + Twilight<br/>Remaining':
-    case 'Day<br/>Remaining':
+    case mode.dayTwilightRemaining:
+    case mode.dayRemaining:
       showRemaining();
       break;
 
@@ -236,34 +308,61 @@ document.querySelector('#night-rect').addEventListener('click', (e) => {
 
   const ratio = 0.5 + Math.atan2(-dx, dy) / (Math.PI * 2);
   const t = times.startMidnight + ratio * times.dayLength;
-  let newMode = 'Midnight';
+  let newMode;
 
   if ((times.startMidnight + times.startDawn) * 0.5 <= t && t < (times.startDawn + times.startRise) * 0.5) {
-    newMode = 'Begin Twilight';
+    newMode = mode.beginTwilight;
   }
   else if ((times.startDawn + times.startRise) * 0.5 <= t && t < (times.startRise + times.noon) * 0.5) {
-    newMode = 'Sunrise';
+    newMode = mode.sunrise;
   }
   else if ((times.startRise + times.noon) * 0.5 <= t && t < (times.noon + times.endSet) * 0.5) {
-    newMode = 'Noon';
+    newMode = mode.noon;
   }
   else if ((times.noon + times.endSet) * 0.5 <= t && t < (times.endSet + times.endDusk) * 0.5) {
-    newMode = 'Sunset';
+    newMode = mode.sunset;
   }
   else if ((times.endSet + times.endDusk) * 0.5 <= t && t < (times.endDusk + times.endMidnight) * 0.5) {
-    newMode = 'End Twilight';
+    newMode = mode.endTwilight;
   }
   else {
-    newMode = 'Midnight';
+    newMode = mode.midnight;
   }
 
-  mode = newMode !== mode ? newMode : '';
+  mode.current = newMode !== mode.current ? newMode : '';
   showData();
 });
 
-document.querySelector('#sun').addEventListener('click', () => {
-  const lst = 'Local<br/>Solar Time';
-  mode = lst !== mode ? lst : '';
+const sunElem = document.querySelector('#sun');
+let sunClickHandle;
+
+sunElem.addEventListener('mousedown', () => {
+  sunClickHandle = setTimeout(() => {
+    sunClickHandle = undefined;
+
+    if (mode.current) {
+      switch (sunMode.current) {
+        case sunMode.localSolarTime: sunMode.current = sunMode.tempusRomanum; break;
+        case sunMode.tempusRomanum: sunMode.current = sunMode.aubreyMaturin; break;
+        case sunMode.aubreyMaturin: sunMode.current = sunMode.localSolarTime; break;
+        default: break;
+      }
+    }
+
+    mode.current = mode.sun;
+    showData();
+  }, 750);
+});
+
+sunElem.addEventListener('mouseup', () => {
+  if (!sunClickHandle) {
+    return;
+  }
+
+  clearTimeout(sunClickHandle);
+  sunClickHandle = undefined;
+
+  mode.current = mode.current !== mode.sun ? mode.sun : '';
   showData();
 });
 
@@ -274,16 +373,16 @@ document.querySelector('#face').addEventListener('click', (e) => {
   let newMode;
 
   if (r < dial.r) {
-    newMode = e.x < dial.cx ? 'Day + Twilight<br/>Remaining' : 'Day<br/>Remaining';
+    newMode = e.x < dial.cx ? mode.dayTwilightRemaining : mode.dayRemaining;
   }
   else if (e.y <= dial.cy) {
-    newMode = e.x < dial.cx ? 'Day + Twilight' : 'Day';
+    newMode = e.x < dial.cx ? mode.dayTwilight : mode.day;
   }
   else {
-    newMode = e.x < dial.cx ? 'Night' : 'Night + Twilight';
+    newMode = e.x < dial.cx ? mode.night : mode.nightTwilight;
   }
 
-  mode = newMode !== mode ? newMode : '';
+  mode.current = newMode !== mode.current ? newMode : '';
   showData();
 });
 
