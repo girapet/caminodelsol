@@ -4,6 +4,7 @@ let now;
 let noons;
 let times;
 let dial;
+let mode = '';
 
 const format = (() => {
   const dtf = new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric' });
@@ -167,40 +168,132 @@ const setHtml = (id, value) => {
   document.querySelector(`#${id}`).innerHTML = value;
 };
 
-const showTimes = () => {
-  const dawn = !times.noDawn ? times.startDawn : null;
-  const rise = !times.noRise ? times.startRise : null;
-  const set = !times.noSet ? times.endSet : null;
-  const dusk = !times.noDusk ? times.endDusk : null;
-
-  setHtml('rise-time', format.time(rise));
-  setHtml('noon-time', format.time(times.noon));
-  setHtml('set-time', format.time(set));
-  setHtml('dawn-time', format.time(dawn));
-  setHtml('midnight-time', format.time(times.startMidnight));
-  setHtml('dusk-time', format.time(dusk));
+const showLabelValues = (label, value1, value2 = '') => {
+  setHtml('data-label', label);
+  setHtml('data-value1', value1);
+  setHtml('data-value2', value2);
 };
 
-const showDay = () => {
+const showRemaining = () => {
   const t = now.valueOf();
+  const isPessimistic = mode === 'Day<br/>Remaining';
+  const startTime = isPessimistic ? times.startRise : times.startDawn;
+  const endTime = isPessimistic ? times.endSet : times.endDusk;
+
+  let label = mode;
   let d;
   let p;
 
-  if (times.startDawn <= t && t <= times.endDusk) {
-    setHtml('day-type', 'Day<br/>Remaining');
-    d = times.endDusk - t;
-    p = Math.round(d * 100 / (times.endDusk - times.startDawn));
+  if (startTime <= t && t <= endTime) {
+    d = endTime - t;
+    p = Math.round(d * 100 / (endTime - startTime));
   }
   else {
-    setHtml('day-type', 'Night<br/>Remaining');
-    const d0 = times.startDawn - times.startMidnight;
-    d = t < times.startDawn ? times.startDawn - t : d0 + times.endMidnight - t;
-    p = Math.round(d * 100 / (d0 + times.endMidnight - times.endDusk));
+    label = isPessimistic ? 'Night + Twilight<br/>Remaining' : 'Night<br/>Remaining';
+    const d0 = startTime - times.startMidnight;
+    d = t < startTime ? startTime - t : d0 + endTime - t;
+    p = Math.round(d * 100 / (d0 + times.endMidnight - endTime));
   }
 
-  setHtml('day-time', format.duration(d));
-  setHtml('day-percent', `${p}%`);
+  showLabelValues(label, format.duration(d), `${p}%`);
 };
+
+const showLocalSolarTime = () => {
+  const date = new Date(now.getYear(), now.getMonth(), now.getDate()).valueOf();
+  let t = now.valueOf();
+  t = date + 86400000 * (t - times.startMidnight) / times.dayLength;
+  showLabelValues(mode, format.time(t));
+};
+
+const showData = () => {
+  switch (mode) {
+    case 'Midnight': showLabelValues(mode, format.time(times.startMidnight)); break;
+    case 'Begin Twilight': showLabelValues(mode, format.time(times.startDawn)); break;
+    case 'Sunrise': showLabelValues(mode, format.time(times.startRise)); break;
+    case 'Noon': showLabelValues(mode, format.time(times.noon)); break;
+    case 'Sunset': showLabelValues(mode, format.time(times.endSet)); break;
+    case 'End Twilight': showLabelValues(mode, format.time(times.endDusk)); break;
+    case 'Day + Twilight': showLabelValues(mode, format.duration(times.endDusk - times.startDawn)); break;
+    case 'Day': showLabelValues(mode, format.duration(times.endSet - times.startRise)); break;
+    case 'Night': showLabelValues(mode, format.duration((times.startDawn - times.startMidnight) + (times.endMidnight - times.endDusk))); break;
+    case 'Night + Twilight': showLabelValues(mode, format.duration((times.startRise - times.startMidnight) + (times.endMidnight - times.endSet))); break;
+    case 'Local<br/>Solar Time': showLocalSolarTime(); break;
+
+    case 'Day + Twilight<br/>Remaining':
+    case 'Day<br/>Remaining':
+      showRemaining();
+      break;
+
+    default: showLabelValues('', ''); break;
+  }
+};
+
+// events
+
+document.querySelector('#night-rect').addEventListener('click', (e) => {
+  const dx = dial.cx - e.x;
+  const dy = dial.cy - e.y;
+
+  const ratio = 0.5 + Math.atan2(-dx, dy) / (Math.PI * 2);
+  const t = times.startMidnight + ratio * times.dayLength;
+  let newMode = 'Midnight';
+
+  if ((times.startMidnight + times.startDawn) * 0.5 <= t && t < (times.startDawn + times.startRise) * 0.5) {
+    newMode = 'Begin Twilight';
+  }
+  else if ((times.startDawn + times.startRise) * 0.5 <= t && t < (times.startRise + times.noon) * 0.5) {
+    newMode = 'Sunrise';
+  }
+  else if ((times.startRise + times.noon) * 0.5 <= t && t < (times.noon + times.endSet) * 0.5) {
+    newMode = 'Noon';
+  }
+  else if ((times.noon + times.endSet) * 0.5 <= t && t < (times.endSet + times.endDusk) * 0.5) {
+    newMode = 'Sunset';
+  }
+  else if ((times.endSet + times.endDusk) * 0.5 <= t && t < (times.endDusk + times.endMidnight) * 0.5) {
+    newMode = 'End Twilight';
+  }
+  else {
+    newMode = 'Midnight';
+  }
+
+  mode = newMode !== mode ? newMode : '';
+  showData();
+});
+
+document.querySelector('#sun').addEventListener('click', () => {
+  const lst = 'Local<br/>Solar Time';
+  mode = lst !== mode ? lst : '';
+  showData();
+});
+
+document.querySelector('#face').addEventListener('click', (e) => {
+  const dx = dial.cx - e.x;
+  const dy = dial.cy - e.y;
+  const r = Math.sqrt(dx * dx + dy * dy);
+  let newMode;
+
+  if (r < dial.r) {
+    newMode = e.x < dial.cx ? 'Day + Twilight<br/>Remaining' : 'Day<br/>Remaining';
+  }
+  else if (e.y <= dial.cy) {
+    newMode = e.x < dial.cx ? 'Day + Twilight' : 'Day';
+  }
+  else {
+    newMode = e.x < dial.cx ? 'Night' : 'Night + Twilight';
+  }
+
+  mode = newMode !== mode ? newMode : '';
+  showData();
+});
+
+window.addEventListener('resize', () => {
+  dial = setDial();
+  setArcs();
+  setSun();
+});
+
+// startup
 
 getObserver().then((observer) => {
   now = new Date();
@@ -210,8 +303,7 @@ getObserver().then((observer) => {
   dial = setDial();
   setArcs();
   setSun();
-  showTimes();
-  showDay();
+  showData();
 });
 
 setInterval(async () => {
@@ -230,16 +322,9 @@ setInterval(async () => {
     if (times.noon !== noons[0] || n.getTimezoneOffset() !== now.getTimezoneOffset()) {
       times = sol.findTimes(noons[0], observer);
       setArcs();
-      showTimes();
     }
 
     setSun();
-    showDay();
+    showData();
   }
 }, 1000);
-
-window.addEventListener('resize', () => {
-  dial = setDial();
-  setArcs();
-  setSun();
-});
