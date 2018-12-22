@@ -1,6 +1,7 @@
 import sol from './sol.js';
 
 let now;
+let observer;
 let noons;
 let times;
 let dial;
@@ -52,13 +53,7 @@ const format = (() => {
   };
 })();
 
-const getObserver = () => new Promise((resolve) => {
-  navigator.geolocation.getCurrentPosition((pos) => {
-    resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-  });
-});
-
-const intialNoons = (observer) => {
+const intialNoons = () => {
   const current = now.valueOf();
   let noon = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12).valueOf();
   noon = sol.findNoon(noon, observer);
@@ -383,9 +378,10 @@ window.addEventListener('resize', () => {
 
 // startup
 
-getObserver().then((observer) => {
+navigator.geolocation.getCurrentPosition((pos) => {
   now = new Date();
-  noons = intialNoons(observer);
+  observer = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+  noons = intialNoons();
   times = sol.findTimes(noons[0], observer);
 
   dial = setDial();
@@ -394,13 +390,19 @@ getObserver().then((observer) => {
   showData();
 });
 
-setInterval(async () => {
-  const n = new Date();
-  const newMinute = n.getMinutes() !== now.getMinutes();
-  now = n;
+navigator.geolocation.watchPosition((pos) => {
+  observer = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+});
 
-  if (newMinute) {
-    const observer = await getObserver();
+setInterval(() => {
+  if (!now) {
+    return;
+  }
+
+  const n = new Date();
+
+  if (n.getMinutes() !== now.getMinutes()) {
+    now = n;
     const t = now.valueOf();
 
     if (t - noons[0] > noons[1] - t) {
