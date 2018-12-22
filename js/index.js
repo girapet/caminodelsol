@@ -7,17 +7,13 @@ let dial;
 
 const mode = {
   current: '',
-  beginTwilight: 'Begin Twilight',
-  day: 'Day',
-  dayRemaining: 'Day<br/>Remaining',
-  dayTwilightRemaining: 'Day + Twilight<br/>Remaining',
-  dayTwilight: 'Day + Twilight',
-  endTwilight: 'End Twilight',
+  beginDaylight: 'Begin Daylight',
+  daylight: 'Daylight',
+  daylightRemaining: 'Daylight<br/>Remaining',
+  endDaylight: 'End Daylight',
   midnight: 'Midnight',
   night: 'Night',
   nightRemaining: 'Night<br/>Remaining',
-  nightTwilight: 'Night + Twilight',
-  nightTwilightRemaning: 'Night + Twilight<br/>Remaining',
   noon: 'Noon',
   sun: 'Sun',
   sunrise: 'Sunrise',
@@ -201,23 +197,19 @@ const showLabelValues = (label, value1, value2 = '') => {
 
 const showRemaining = () => {
   const t = now.valueOf();
-  const isPessimistic = mode.current === mode.dayRemaining;
-  const startTime = isPessimistic ? times.startRise : times.startDawn;
-  const endTime = isPessimistic ? times.endSet : times.endDusk;
-
   let label = mode.current;
   let d;
   let p;
 
-  if (startTime <= t && t <= endTime) {
-    d = endTime - t;
-    p = Math.round(d * 100 / (endTime - startTime));
+  if (times.startDawn <= t && t <= times.endDusk) {
+    d = times.endDusk - t;
+    p = Math.round(d * 100 / (times.endDusk - times.startDawn));
   }
   else {
-    label = isPessimistic ? mode.nightTwilightRemaning : mode.nightRemaining;
-    const d0 = startTime - times.startMidnight;
-    d = t < startTime ? startTime - t : d0 + endTime - t;
-    p = Math.round(d * 100 / (d0 + times.endMidnight - endTime));
+    label = mode.nightRemaining;
+    const d0 = times.startDawn - times.startMidnight;
+    d = t < times.startDawn ? times.startDawn - t : d0 + times.endDusk - t;
+    p = Math.round(d * 100 / (d0 + times.endMidnight - times.endDusk));
   }
 
   showLabelValues(label, format.duration(d), `${p}%`);
@@ -280,19 +272,16 @@ const showSunTime = () => {
 const showData = () => {
   switch (mode.current) {
     case mode.midnight: showLabelValues(mode.current, format.time(times.startMidnight)); break;
-    case mode.beginTwilight: showLabelValues(mode.current, format.time(times.startDawn)); break;
+    case mode.beginDaylight: showLabelValues(mode.current, format.time(times.startDawn)); break;
     case mode.sunrise: showLabelValues(mode.current, format.time(times.startRise)); break;
     case mode.noon: showLabelValues(mode.current, format.time(times.noon)); break;
     case mode.sunset: showLabelValues(mode.current, format.time(times.endSet)); break;
-    case mode.endTwilight: showLabelValues(mode.current, format.time(times.endDusk)); break;
-    case mode.dayTwilight: showLabelValues(mode.current, format.duration(times.endDusk - times.startDawn)); break;
-    case mode.day: showLabelValues(mode.current, format.duration(times.endSet - times.startRise)); break;
+    case mode.endDaylight: showLabelValues(mode.current, format.time(times.endDusk)); break;
+    case mode.daylight: showLabelValues(mode.current, format.duration(times.endDusk - times.startDawn)); break;
     case mode.night: showLabelValues(mode.current, format.duration((times.startDawn - times.startMidnight) + (times.endMidnight - times.endDusk))); break;
-    case mode.nightTwilight: showLabelValues(mode.current, format.duration((times.startRise - times.startMidnight) + (times.endMidnight - times.endSet))); break;
     case mode.sun: showSunTime(); break;
 
-    case mode.dayTwilightRemaining:
-    case mode.dayRemaining:
+    case mode.daylightRemaining:
       showRemaining();
       break;
 
@@ -311,7 +300,7 @@ document.querySelector('#night-rect').addEventListener('click', (e) => {
   let newMode;
 
   if ((times.startMidnight + times.startDawn) * 0.5 <= t && t < (times.startDawn + times.startRise) * 0.5) {
-    newMode = mode.beginTwilight;
+    newMode = mode.beginDaylight;
   }
   else if ((times.startDawn + times.startRise) * 0.5 <= t && t < (times.startRise + times.noon) * 0.5) {
     newMode = mode.sunrise;
@@ -323,7 +312,7 @@ document.querySelector('#night-rect').addEventListener('click', (e) => {
     newMode = mode.sunset;
   }
   else if ((times.endSet + times.endDusk) * 0.5 <= t && t < (times.endDusk + times.endMidnight) * 0.5) {
-    newMode = mode.endTwilight;
+    newMode = mode.endDaylight;
   }
   else {
     newMode = mode.midnight;
@@ -373,13 +362,13 @@ document.querySelector('#face').addEventListener('click', (e) => {
   let newMode;
 
   if (r < dial.r) {
-    newMode = e.x < dial.cx ? mode.dayTwilightRemaining : mode.dayRemaining;
+    newMode = mode.daylightRemaining;
   }
   else if (e.y <= dial.cy) {
-    newMode = e.x < dial.cx ? mode.dayTwilight : mode.day;
+    newMode = mode.daylight;
   }
   else {
-    newMode = e.x < dial.cx ? mode.night : mode.nightTwilight;
+    newMode = mode.night;
   }
 
   mode.current = newMode !== mode.current ? newMode : '';
