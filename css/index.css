@@ -45,7 +45,7 @@ svg, #data-overlay {
   pointer-events: none;
 }
 
-#data-overlay label {
+#data-label {
   display: inline-block;
   color: hsl(215, 100%, 90%);
   font-size: 12pt;
@@ -54,8 +54,6 @@ svg, #data-overlay {
 
 #data-display {
   position: absolute;
-  box-sizing: border-box;
-  padding: 10px;
   text-align: center;
   top: 40%;
   width: 100%;

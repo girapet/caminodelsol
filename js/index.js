@@ -106,6 +106,9 @@ const setDial = () => {
   const facePath = `M 0 0 L ${w} 0 L ${w} ${h} L 0 ${h} z M ${cx} ${cy} m 0 ${-or} a ${-or} ${-or} 0 1 0 0.001 0 z m 0 ${or - ir} z a ${ir} ${ir} 0 1 1 -0.001 0 z`;
   $face.setAttribute('d', facePath);
 
+  document.querySelector('#data-display').style.fontSize = `${Math.round(or * 0.12)}px`;
+  document.querySelector('#data-label').style.fontSize = `${Math.round(or * 0.09)}px`;
+
   return { cx, cy, r: or };
 };
 
