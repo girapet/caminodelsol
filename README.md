@@ -29,8 +29,8 @@ Durations in hours and minutes are displayed when tapping inside or outside of t
 
 #### Solar Time and Modes
 Tap the sun dot to display the local solar time.  Long touch the dot to change solar time modes.
-* __Local Solar Time__ - 12:00 PM is solar noon, the time when the sun reaches its zenith
-* __Tempus Romanum__ - Ancient Roman time with 12 hours of sunlight and 12 hours of night, regardless of the season
-* __Aubrey–Maturin__ - Bells and watches of the Royal British Navy in the early 1800's as described in the Patrick O'Brian novels
+* __Local Solar Time__ - 12:00 PM is solar noon, the time when the sun reaches its zenith ([Wikipedia](https://en.wikipedia.org/wiki/Solar_time))
+* __Tempus Romanum__ - Ancient Roman time with 12 hours of sunlight and 12 hours of night, regardless of the season ([Wikipedia](https://en.wikipedia.org/wiki/Roman_timekeeping))
+* __Aubrey–Maturin__ - Bells and watches of the British Royal Navy in the early 1800's as described in the Patrick O'Brian novels ([Wikipedia](https://en.wikipedia.org/wiki/Ship%27s_bell))
 
 _Musical inspiration:_ [Antena - Camino Del Sol](https://open.spotify.com/track/164x73EfS67eCWhm2MvHgP?si=1-CT6nKVQJ-lxMoSq1KxwA)
