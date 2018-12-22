@@ -5,12 +5,22 @@ let observer;
 let noons;
 let times;
 let dial;
+let sunClickHandle;
+
+const $nightRect = document.querySelector('#night-rect');
+const $face = document.querySelector('#face');
+const $civilArc = document.querySelector('#civil-arc');
+const $dayArc = document.querySelector('#day-arc');
+const $sun = document.querySelector('#sun');
+const $sunDilate = document.querySelector('#sun-dilate');
+const $sunBlur = document.querySelector('#sun-blur');
+const $sunSelect = document.querySelector('#sun-select');
 
 const mode = {
   current: '',
   beginDaylight: 'Begin Daylight',
   daylight: 'Daylight',
-  daylightRemaining: 'Daylight<br/>Remaining',
+  remaining: 'Daylight<br/>Remaining',
   endDaylight: 'End Daylight',
   midnight: 'Midnight',
   night: 'Night',
@@ -93,9 +103,8 @@ const setDial = () => {
   const or = Math.min(w, h) * 0.4;
   const ir = or * 2 / 3;
 
-  const face = document.querySelector('#face');
   const facePath = `M 0 0 L ${w} 0 L ${w} ${h} L 0 ${h} z M ${cx} ${cy} m 0 ${-or} a ${-or} ${-or} 0 1 0 0.001 0 z m 0 ${or - ir} z a ${ir} ${ir} 0 1 1 -0.001 0 z`;
-  face.setAttribute('d', facePath);
+  $face.setAttribute('d', facePath);
 
   return { cx, cy, r: or };
 };
@@ -122,61 +131,59 @@ const setArcPath = (arc, fromRatio, toRatio) => {
 };
 
 const setArcs = () => {
-  const civilArc = document.querySelector('#civil-arc');
-  setArcPath(civilArc, times.ratio('startDawn'), times.ratio('endDusk'));
-
-  const dayArc = document.querySelector('#day-arc');
-  setArcPath(dayArc, times.ratio('startRise'), times.ratio('endSet'));
+  setArcPath($civilArc, times.ratio('startDawn'), times.ratio('endDusk'));
+  setArcPath($dayArc, times.ratio('startRise'), times.ratio('endSet'));
 };
 
 const setSun = () => {
-  const sun = document.querySelector('#sun');
-  const sunDilate = document.querySelector('#sun-dilate');
-  const sunBlur = document.querySelector('#sun-blur');
-
   const t = now.valueOf();
-  sun.setAttribute('r', dial.r * 0.07);
+  $sun.setAttribute('r', dial.r * 0.07);
+  $sunSelect.setAttribute('r', dial.r * 0.1666);
 
   const sr = dial.r * 5 / 6;
   const ratio = times.ratio(t);
-  sun.setAttribute('cx', ratioToX(sr, ratio));
-  sun.setAttribute('cy', ratioToY(sr, ratio));
+  const x = ratioToX(sr, ratio);
+  const y = ratioToY(sr, ratio);
+  $sun.setAttribute('cx', x);
+  $sun.setAttribute('cy', y);
+  $sunSelect.setAttribute('cx', x);
+  $sunSelect.setAttribute('cy', y);
 
   let r;
 
   if (t < times.startDawn || times.endDusk < t) {
-    sun.setAttribute('fill', 'hsl(60, 0%, 90%)');
-    sunDilate.setAttribute('radius', 0);
-    sunBlur.setAttribute('stdDeviation', 0);
+    $sun.setAttribute('fill', 'hsl(60, 0%, 90%)');
+    $sunDilate.setAttribute('radius', 0);
+    $sunBlur.setAttribute('stdDeviation', 0);
   }
   else if (t < times.startRise) {
     r = (t - times.startDawn) / (times.startRise - times.startDawn);
-    sun.setAttribute('fill', `hsl(60, ${95 * r}%, ${70 + 20 * (1 - r)}%)`);
-    sunDilate.setAttribute('radius', 0);
-    sunBlur.setAttribute('stdDeviation', 0);
+    $sun.setAttribute('fill', `hsl(60, ${95 * r}%, ${70 + 20 * (1 - r)}%)`);
+    $sunDilate.setAttribute('radius', 0);
+    $sunBlur.setAttribute('stdDeviation', 0);
   }
   else if (t < times.endRise) {
     r = (t - times.startRise) / (times.endRise - times.startRise);
-    sun.setAttribute('fill', 'hsl(60, 95%, 70%)');
-    sunDilate.setAttribute('radius', 2 * r);
-    sunBlur.setAttribute('stdDeviation', 4 * r);
+    $sun.setAttribute('fill', 'hsl(60, 95%, 70%)');
+    $sunDilate.setAttribute('radius', 2 * r);
+    $sunBlur.setAttribute('stdDeviation', 4 * r);
   }
   else if (t < times.startSet) {
-    sun.setAttribute('fill', 'hsl(60, 95%, 70%)');
-    sunDilate.setAttribute('radius', 2);
-    sunBlur.setAttribute('stdDeviation', 4);
+    $sun.setAttribute('fill', 'hsl(60, 95%, 70%)');
+    $sunDilate.setAttribute('radius', 2);
+    $sunBlur.setAttribute('stdDeviation', 4);
   }
   else if (t < times.endSet) {
     r = (times.endSet - t) / (times.endSet - times.startSet);
-    sun.setAttribute('fill', 'hsl(60, 95%, 70%)');
-    sunDilate.setAttribute('radius', 2 * r);
-    sunBlur.setAttribute('stdDeviation', 4 * r);
+    $sun.setAttribute('fill', 'hsl(60, 95%, 70%)');
+    $sunDilate.setAttribute('radius', 2 * r);
+    $sunBlur.setAttribute('stdDeviation', 4 * r);
   }
   else if (t < times.endDusk) {
     r = (times.endDusk - t) / (times.endDusk - times.endSet);
-    sun.setAttribute('fill', `hsl(60, ${95 * r}%, ${70 + 20 * (1 - r)}%)`);
-    sunDilate.setAttribute('radius', 0);
-    sunBlur.setAttribute('stdDeviation', 0);
+    $sun.setAttribute('fill', `hsl(60, ${95 * r}%, ${70 + 20 * (1 - r)}%)`);
+    $sunDilate.setAttribute('radius', 0);
+    $sunBlur.setAttribute('stdDeviation', 0);
   }
 };
 
@@ -275,18 +282,44 @@ const showData = () => {
     case mode.daylight: showLabelValues(mode.current, format.duration(times.endDusk - times.startDawn)); break;
     case mode.night: showLabelValues(mode.current, format.duration((times.startDawn - times.startMidnight) + (times.endMidnight - times.endDusk))); break;
     case mode.sun: showSunTime(); break;
-
-    case mode.daylightRemaining:
-      showRemaining();
-      break;
-
+    case mode.remaining: showRemaining(); break;
     default: showLabelValues('', ''); break;
   }
 };
 
+const sunTouchStart = () => {
+  sunClickHandle = setTimeout(() => {
+    sunClickHandle = undefined;
+
+    if (mode.current) {
+      switch (sunMode.current) {
+        case sunMode.localSolarTime: sunMode.current = sunMode.tempusRomanum; break;
+        case sunMode.tempusRomanum: sunMode.current = sunMode.aubreyMaturin; break;
+        case sunMode.aubreyMaturin: sunMode.current = sunMode.localSolarTime; break;
+        default: break;
+      }
+    }
+
+    mode.current = mode.sun;
+    showData();
+  }, 750);
+};
+
+const sunTouchEnd = () => {
+  if (!sunClickHandle) {
+    return;
+  }
+
+  clearTimeout(sunClickHandle);
+  sunClickHandle = undefined;
+
+  mode.current = mode.current !== mode.sun ? mode.sun : '';
+  showData();
+};
+
 // events
 
-document.querySelector('#night-rect').addEventListener('click', (e) => {
+$nightRect.addEventListener('click', (e) => {
   const dx = dial.cx - e.x;
   const dy = dial.cy - e.y;
 
@@ -317,47 +350,18 @@ document.querySelector('#night-rect').addEventListener('click', (e) => {
   showData();
 });
 
-const sunElem = document.querySelector('#sun');
-let sunClickHandle;
+const isMobile = 'ontouchstart' in document.documentElement;
+$sunSelect.addEventListener(isMobile ? 'touchstart' : 'mousedown', sunTouchStart);
+$sunSelect.addEventListener(isMobile ? 'touchend' : 'mouseup', sunTouchEnd);
 
-sunElem.addEventListener('mousedown', () => {
-  sunClickHandle = setTimeout(() => {
-    sunClickHandle = undefined;
-
-    if (mode.current) {
-      switch (sunMode.current) {
-        case sunMode.localSolarTime: sunMode.current = sunMode.tempusRomanum; break;
-        case sunMode.tempusRomanum: sunMode.current = sunMode.aubreyMaturin; break;
-        case sunMode.aubreyMaturin: sunMode.current = sunMode.localSolarTime; break;
-        default: break;
-      }
-    }
-
-    mode.current = mode.sun;
-    showData();
-  }, 750);
-});
-
-sunElem.addEventListener('mouseup', () => {
-  if (!sunClickHandle) {
-    return;
-  }
-
-  clearTimeout(sunClickHandle);
-  sunClickHandle = undefined;
-
-  mode.current = mode.current !== mode.sun ? mode.sun : '';
-  showData();
-});
-
-document.querySelector('#face').addEventListener('click', (e) => {
+$face.addEventListener('click', (e) => {
   const dx = dial.cx - e.x;
   const dy = dial.cy - e.y;
   const r = Math.sqrt(dx * dx + dy * dy);
   let newMode;
 
   if (r < dial.r) {
-    newMode = mode.daylightRemaining;
+    newMode = mode.remaining;
   }
   else if (e.y <= dial.cy) {
     newMode = mode.daylight;

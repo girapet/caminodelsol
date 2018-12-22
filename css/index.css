@@ -1,5 +1,6 @@
 body {
   margin: 0;
+  user-select: none;
 }
 
 svg, #data-overlay {
@@ -24,7 +25,12 @@ svg, #data-overlay {
 }
 
 #sun {
+  pointer-events: none;
+}
+
+#sun-select {
   pointer-events: all;
+  opacity: 0;
 }
 
 #face {
