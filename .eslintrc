@@ -19,6 +19,7 @@
     }],
     "brace-style": ["error", "stroustrup"],
     "max-len": 0,
-    "import/extensions": 0
+    "import/extensions": 0,
+    "no-restricted-globals": 0
   },
 }
