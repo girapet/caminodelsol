@@ -213,7 +213,7 @@ const showRemaining = () => {
   else {
     label = mode.nightRemaining;
     const d0 = times.startDawn - times.startMidnight;
-    d = t < times.startDawn ? times.startDawn - t : d0 + times.endDusk - t;
+    d = t < times.startDawn ? times.startDawn - t : d0 + times.endMidnight - t;
     p = Math.round(d * 100 / (d0 + times.endMidnight - times.endDusk));
   }
 
