@@ -194,10 +194,9 @@ const setHtml = (id, value) => {
   document.querySelector(`#${id}`).innerHTML = value;
 };
 
-const showLabelValues = (label, value1, value2 = '') => {
+const showLabelValue = (label, value) => {
   setHtml('data-label', label);
-  setHtml('data-value1', value1);
-  setHtml('data-value2', value2);
+  setHtml('data-value', value);
 };
 
 const showRemaining = () => {
@@ -217,14 +216,14 @@ const showRemaining = () => {
     p = Math.round(d * 100 / (d0 + times.endMidnight - times.endDusk));
   }
 
-  showLabelValues(label, format.duration(d), `${p}%`);
+  showLabelValue(label, `${format.duration(d)}<br/>${p}%`);
 };
 
 const showLocalSolarTime = () => {
   const date = new Date(now.getYear(), now.getMonth(), now.getDate()).valueOf();
   let t = now.valueOf();
   t = date + 86400000 * (t - times.startMidnight) / times.dayLength;
-  showLabelValues(sunMode.current, format.time(t));
+  showLabelValue(sunMode.current, format.time(t));
 };
 
 const showTempusRomanum = () => {
@@ -245,8 +244,7 @@ const showTempusRomanum = () => {
     i = Math.floor((t - times.endSet) * 6 / (times.endMidnight - times.endSet));
   }
 
-  const fullHour = `Hora ${hourNames[i]}<br/>${period}`;
-  showLabelValues(sunMode.current, hours[i], fullHour);
+  showLabelValue(sunMode.current, `${hours[i]}<br/>Hora ${hourNames[i]}<br/>${period}`);
 };
 
 const showAubreyMaturin = () => {
@@ -262,7 +260,7 @@ const showAubreyMaturin = () => {
     dog = b < 4 ? 'First' : 'Last';
   }
 
-  showLabelValues(sunMode.current, `${bells[b]} Bell${b > 0 ? 's' : ''}<br/>${dog}${watches[w]} Watch`);
+  showLabelValue(sunMode.current, `${bells[b]} Bell${b > 0 ? 's' : ''}<br/>${dog}${watches[w]} Watch`);
 };
 
 const showSunTime = () => {
@@ -276,17 +274,17 @@ const showSunTime = () => {
 
 const showData = () => {
   switch (mode.current) {
-    case mode.midnight: showLabelValues(mode.current, format.time(times.startMidnight)); break;
-    case mode.beginDaylight: showLabelValues(mode.current, format.time(times.startDawn)); break;
-    case mode.sunrise: showLabelValues(mode.current, format.time(times.startRise)); break;
-    case mode.noon: showLabelValues(mode.current, format.time(times.noon)); break;
-    case mode.sunset: showLabelValues(mode.current, format.time(times.endSet)); break;
-    case mode.endDaylight: showLabelValues(mode.current, format.time(times.endDusk)); break;
-    case mode.daylight: showLabelValues(mode.current, format.duration(times.endDusk - times.startDawn)); break;
-    case mode.night: showLabelValues(mode.current, format.duration((times.startDawn - times.startMidnight) + (times.endMidnight - times.endDusk))); break;
+    case mode.midnight: showLabelValue(mode.current, format.time(times.startMidnight)); break;
+    case mode.beginDaylight: showLabelValue(mode.current, format.time(times.startDawn)); break;
+    case mode.sunrise: showLabelValue(mode.current, format.time(times.startRise)); break;
+    case mode.noon: showLabelValue(mode.current, format.time(times.noon)); break;
+    case mode.sunset: showLabelValue(mode.current, format.time(times.endSet)); break;
+    case mode.endDaylight: showLabelValue(mode.current, format.time(times.endDusk)); break;
+    case mode.daylight: showLabelValue(mode.current, format.duration(times.endDusk - times.startDawn)); break;
+    case mode.night: showLabelValue(mode.current, format.duration((times.startDawn - times.startMidnight) + (times.endMidnight - times.endDusk))); break;
     case mode.sun: showSunTime(); break;
     case mode.remaining: showRemaining(); break;
-    default: showLabelValues('', ''); break;
+    default: showLabelValue('', ''); break;
   }
 };
 
@@ -378,12 +376,21 @@ $face.addEventListener('click', (e) => {
 });
 
 window.addEventListener('resize', () => {
-  dial = setDial();
-  setArcs();
-  setSun();
+  if (now) {
+    dial = setDial();
+    setArcs();
+    setSun();
+  }
 });
 
 // startup
+
+const showNoLocation = () => setHtml('data-value', 'This app needs your location.<br/><br/>Please enable location services on<br/>your device and allow access to<br/>your location if asked.');
+
+if (!('geolocation' in navigator)) {
+  showNoLocation();
+  throw new Error('No geolocation in navigator');
+}
 
 navigator.geolocation.getCurrentPosition((pos) => {
   now = new Date();
@@ -394,8 +401,9 @@ navigator.geolocation.getCurrentPosition((pos) => {
   dial = setDial();
   setArcs();
   setSun();
-  showData();
-});
+
+  document.querySelector('#scrim').className = 'hide';
+}, showNoLocation);
 
 navigator.geolocation.watchPosition((pos) => {
   observer = { lat: pos.coords.latitude, lon: pos.coords.longitude };
