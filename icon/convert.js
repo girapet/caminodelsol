@@ -1,3 +1,5 @@
+/* eslint-env node */
+
 const sharp = require('sharp');
 const toIco = require('to-ico');
 const fs = require('fs');
