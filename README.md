@@ -1,6 +1,8 @@
 ## Camino Del Sol
 A local solar time clock for mobile devices
 
+Run it at https://girapet.github.io/caminodelsol/index.html
+
 ### Presentation
 You are shown a circle representing a 24-hour day.  The top of the circle is noon, the bottom is midnight, the left side is morning and the right side is afternoon and evening.  A dot representing the sun slowly moves around the circle marking the time of day.  
 
